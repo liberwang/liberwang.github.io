@@ -88,13 +88,6 @@ function initialControls() {
 
     var ls_w = 73, ls_h = 20
 
-    // function linepos(x) {
-    //     if (x == 0) 
-    //         return 927;
-    //     x = Math.log10(x);
-    //     return 854 - x * ls_w;
-    // }
-
     legend.append("text")
         .attr("x", 417)
         .attr("y", 20)
