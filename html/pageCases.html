@@ -1,0 +1,43 @@
+<div id="content_div">
+    <h2>Latest <label id="titleMap"></label> Cases by Counties in U.S. Map</h2> 
+    <table>
+        <tr>
+            <td valign="top" style="width: 1000px;">
+            <svg id="map"></svg>
+            <svg id="legend"></svg>
+            </td>
+
+            <td valign="top">
+                <table style="width:100%">
+                    <tr>
+                        <td style="width: 300px;">
+                            <h3>Move mouse in the map to get detail information</h3>
+                        </td>
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                            <h3>Slide the date bar to choose date.</h3>
+                            <h2 id="dateslider" class="date"></h2>
+                            <div id="slider" class="slider"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <br />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <h3>Choose type of cases:</h3>
+                            <input type="radio" id="radConfirmedMap" name="casetypemap" value="confirmed" onclick="casetypechoose('confirmed');">
+                            <label for="radConfirmed">Confirmed Cases</label>
+                            <input type="radio" id="radDeathMap" name="casetypemap" value="death" onclick="casetypechoose('death');">
+                            <label for="radDeath">Deaths Cases</label><br />									
+                        </td> 
+                    </tr>
+                </table>
+            </td> 
+        </tr>
+    </table>
+</div>

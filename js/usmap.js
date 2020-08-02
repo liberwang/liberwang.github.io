@@ -1,5 +1,3 @@
-var dates = [];
-
 var width = 1000;
 var height = 500;
 var graph_width = 300;
@@ -17,105 +15,113 @@ var maxDeaths = 0;
 var minDeaths = 0;
 var startDateIndex = 0;
 var startDate;
+var topo = null;
+var todayDate= null;
+var slider = null;
 
-var svgMap = d3.select("#map")
-    .attr("width", width)
-    .attr("height", height)
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-var g = svgMap.append("g");
-
-var infobarMap = d3.select("body")
-    .append("div")
-    .attr("class","tooltipMap")
-    .style("opacity", 0)
-    .style("width", 480);
-
-var tooltipMain = d3.select("body")
-    .append("div")
-    .attr("class", "tooltipMain")
-    .style("opacity", 0);
-
-var tooltipTop = d3.select("body")
-    .append("div")
-    .attr("class", "tooltipMain")
-    .style("opacity", 0);
-
-var tooltipState = d3.select("body")
-    .append("div")
-    .attr("class", "tooltipMain")
-    .style("opacity", 0);
-
-var projection = d3.geoAlbersUsa();
-var path = d3.geoPath()
-    .projection(projection);
-    
-d3.selectAll("#radConfirmedMap").attr("checked", true);
-
+var g;
+var infobarMap;
+var svgMap;
+var tooltipMain;
+var tooltipTop;
+var tooltipState;
 var checkConfirmedMap = true;
-
-this.setMapTitle();
-
+var legend;
 var confirmColorRange = d3.scaleLog([1, 1000, 1000000], ["yellow", "red", "darkred"]);
 var deathColorRange = d3.scaleLog([1,1000,1000000], ["lightskyblue", "Blue", "DarkBlue"]);
+var path;
 
-function color(num) {
-    if (num == 0 || num == null) 
-        return "white";
-    else {
-        if ( checkConfirmedMap ) 
-            return confirmColorRange(num); 
-        else 
-            return deathColorRange(num);
-    }
+var dates = [];
+var data = new Map()
+var dateData = new Map();
+var stateData = new Map();
+
+function initialControls() {
+    svgMap = d3.select("#map")
+        .attr("width", width)
+        .attr("height", height)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    g = svgMap.append("g");
+
+    infobarMap = d3.select("body")
+        .append("div")
+        .attr("class","tooltipMap")
+        .style("opacity", 0)
+        .style("width", 480);
+
+    tooltipMain = d3.select("body")
+        .append("div")
+        .attr("class", "tooltipMain")
+        .style("opacity", 0);
+
+    tooltipTop = d3.select("body")
+        .append("div")
+        .attr("class", "tooltipMain")
+        .style("opacity", 0);
+
+    tooltipState = d3.select("body")
+        .append("div")
+        .attr("class", "tooltipMain")
+        .style("opacity", 0);
+
+    var projection = d3.geoAlbersUsa();
+    path = d3.geoPath()
+        .projection(projection);
+        
+    d3.selectAll("#radConfirmedMap").attr("checked", true);
+
+    this.setMapTitle();
+
+
+    // Legend
+    legend = d3.select("#legend")
+        .attr("width", "1000")
+        .attr("height", "100")
+        .selectAll("g.legend")
+        .data([0, 1, 10, 100, 1000, 10000, 100000, 1000000])
+        .enter()
+        .append("g")
+        .attr("class", "legend");
+
+    var ls_w = 73, ls_h = 20
+
+    // function linepos(x) {
+    //     if (x == 0) 
+    //         return 927;
+    //     x = Math.log10(x);
+    //     return 854 - x * ls_w;
+    // }
+
+    legend.append("text")
+        .attr("x", 417)
+        .attr("y", 20)
+        .text(function(){return "Number of Cases";});
+
+    legend.append("rect")
+        .attr("x", function(d, i){ return 1000 - (i*ls_w) - ls_w})
+        .attr("y", 30)
+        .attr("width", ls_w)
+        .attr("height", ls_h)
+        .style("fill", function(d, i) { return color(d) });
+
+    labels = ["0", "1", "10", "100", "1,000", "10,000", "100,000", "1,000,000"];
+
+    legend.append("text")
+        .attr("x", function(d, i){ return 1000 - (i*ls_w) - ls_w})
+        .attr("y", 70)
+        .text(function(d, i){ return labels[i] });
+
+    var zoom = d3.zoom()
+        .extent([[0, 0], [width, height]])
+        .scaleExtent([1, 10])
+        .on("zoom", zoomed);
+
+    svgMap.call(zoom);
+
 }
-
-// Legend
-var legend = d3.select("#legend")
-    .attr("width", "1000")
-    .attr("height", "100")
-    .selectAll("g.legend")
-    .data([0, 1, 10, 100, 1000, 10000, 100000, 1000000])
-    .enter()
-    .append("g")
-    .attr("class", "legend");
-
-var ls_w = 73, ls_h = 20
-
-function linepos(x) {
-    if (x == 0) 
-        return 927;
-    x = Math.log10(x);
-    return 854 - x * ls_w;
-}
-
-legend.append("text")
-    .attr("x", 417)
-    .attr("y", 20)
-    .text(function(){return "Number of Cases";});
-
-legend.append("rect")
-    .attr("x", function(d, i){ return 1000 - (i*ls_w) - ls_w})
-    .attr("y", 30)
-    .attr("width", ls_w)
-    .attr("height", ls_h)
-    .style("fill", function(d, i) { return color(d) });
-
-labels = ["0", "1", "10", "100", "1,000", "10,000", "100,000", "1,000,000"];
-
-legend.append("text")
-    .attr("x", function(d, i){ return 1000 - (i*ls_w) - ls_w})
-    .attr("y", 70)
-    .text(function(d, i){ return labels[i] });
-
-var zoom = d3.zoom()
-    .extent([[0, 0], [width, height]])
-    .scaleExtent([1, 10])
-    .on("zoom", zoomed);
-
-svgMap.call(zoom);
 
 function zoomed() {
     g.attr("transform", d3.event.transform);
@@ -129,9 +135,23 @@ function unzoomed() {
     )
 }
 
-var topo = null;
-var todayDate= null;
-var slider = null;
+function color(num) {
+    if (num == 0 || num == null) 
+        return "white";
+    else {
+        if ( checkConfirmedMap ) 
+            return confirmColorRange(num); 
+        else 
+            return deathColorRange(num);
+    }
+}
+
+function loadhtml( divname ) {
+    console.log( divname );
+    $.get("html/" + divname + ".html", function(htmlstring ) {
+        d3.select("#" + divname).html(htmlstring);
+    });
+}
 
 function load(us) {
     todayDate = dates[dates.length-1];
@@ -421,83 +441,96 @@ function load(us) {
     }
 }
 
-var data = new Map()
-var dateData = new Map();
-var stateData = new Map();
-
 d3.json("data/counties-10m.json").then(function(us) {
-        d3.csv("data/us-counties.csv", function(d) {
-            d.date = d.date.slice(5);
-            if (d.county === "New York City") d.fips = 36061;
-            if (!dates.includes(d.date)) {
-                dates.push(d.date);
-            }
-            
-            // get date data
-            // structure: "07-13", { cases: 12, deaths: 1 }
-            if( dateData.get( d.date )) {
-                x = dateData.get( d.date );
-                x.cases += +d.cases;
-                x.deaths += +d.deaths;
-                dateData.set( d.date, x );
-            } else {
-                x = {"cases": +d.cases,"deaths": +d.deaths };
-                dateData.set( d.date, x);
-            }
+    d3.select("#fullpage").selectAll("div").each(
+        function( d, i ) {
+            loadhtml( this.id );
+        }
+    )
+        console.log( "fullpage");
+        
+    $('#fullpage').fullpage({
+        verticalCentered: false,
+        anchors: ['Home', 'todaydata', 'trend', 'mapcases', 'top10', 'ref'],
+        navigation: true,
+        navigationPosition: 'left',
+        navigationTooltips: ['Home Page', 'Total Cases for Today','Trend of All States','Cases of Counties in US Map', 'Top 10 Statistics', 'Reference and Resource']
+    });
 
-            //get map data 
-            // structure: "07123", { "07-13", "orange county", "california", { cases: 12, deaths: 1 }}
-            if (data.get(+d.fips)) {
-                x = data.get(+d.fips)
-                x[d.date] = {"cases": +d.cases, "deaths": +d.deaths}
-                data.set(+d.fips, x)
-            } else {
-                x = {}
-                x[d.date] = {"cases": +d.cases, "deaths": +d.deaths}
-                x["county"] = d.county; 
-                x["state"] = d.state;
-                x["id"] = +d.fips
-                data.set(+d.fips, x)
-            }
-        }).then(function (d) {
-            load(us);
+    d3.csv("data/us-counties.csv", function(d) {
+        d.date = d.date.slice(5);
+        if (d.county === "New York City") d.fips = 36061;
+        if (!dates.includes(d.date)) {
+            dates.push(d.date);
+        }
+        
+        // get date data
+        // structure: "07-13", { cases: 12, deaths: 1 }
+        if( dateData.get( d.date )) {
+            x = dateData.get( d.date );
+            x.cases += +d.cases;
+            x.deaths += +d.deaths;
+            dateData.set( d.date, x );
+        } else {
+            x = {"cases": +d.cases,"deaths": +d.deaths };
+            dateData.set( d.date, x);
+        }
 
-            startDateIndex = dates.length - state_date_before;
-            startDate = dates[startDateIndex];
+        //get map data 
+        // structure: "07123", { "07-13", "orange county", "california", { cases: 12, deaths: 1 }}
+        if (data.get(+d.fips)) {
+            x = data.get(+d.fips)
+            x[d.date] = {"cases": +d.cases, "deaths": +d.deaths}
+            data.set(+d.fips, x)
+        } else {
+            x = {}
+            x[d.date] = {"cases": +d.cases, "deaths": +d.deaths}
+            x["county"] = d.county; 
+            x["state"] = d.state;
+            x["id"] = +d.fips
+            data.set(+d.fips, x)
+        }
+    }).then(function (d) {
+        initialControls();
 
-            d3.csv("data/us-states.csv", function(d) {
-                var date = d.date.slice(5);
-                var cases = {"cases": +d.cases, "deaths": +d.deaths};
-            
-                if ( +date.slice(0,2) > +startDate.slice(0,2) ||
-                    ( +date.slice(0,2) == +startDate.slice(0,2) && +date.slice(3) >= +startDate.slice(3) ) ) {
-                        if ( maxCases < +d.cases ) 
-                            maxCases = +d.cases;
-                        if ( minCases > +d.cases ) 
-                            minCases = +d.cases;
+        load(us);
 
-                        if ( maxDeaths < +d.deaths ) 
-                            maxDeaths = +d.deaths;
-                        if ( minDeaths > +d.deaths )
-                            minDeaths = +d.deaths;
-                    }
+        startDateIndex = dates.length - state_date_before;
+        startDate = dates[startDateIndex];
 
-                if ( stateData.get( d.state )) {
-                    x = stateData.get( d.state );
-                    x.set( date, cases );
-                    stateData.set( d.state, x);        
-                } else {
-                    x = new Map();
-                    x.set( date, cases );
-                    stateData.set( d.state, x );
+        d3.csv("data/us-states.csv", function(d) {
+            var date = d.date.slice(5);
+            var cases = {"cases": +d.cases, "deaths": +d.deaths};
+        
+            if ( +date.slice(0,2) > +startDate.slice(0,2) ||
+                ( +date.slice(0,2) == +startDate.slice(0,2) && +date.slice(3) >= +startDate.slice(3) ) ) {
+                    if ( maxCases < +d.cases ) 
+                        maxCases = +d.cases;
+                    if ( minCases > +d.cases ) 
+                        minCases = +d.cases;
+
+                    if ( maxDeaths < +d.deaths ) 
+                        maxDeaths = +d.deaths;
+                    if ( minDeaths > +d.deaths )
+                        minDeaths = +d.deaths;
                 }
-                if (!dates.includes(date)) {
-                    dates.push(date);
-                }
-            } ).then( function( d) {
-                    generateStateMaps(d);
-            } );
-        })
+
+            if ( stateData.get( d.state )) {
+                x = stateData.get( d.state );
+                x.set( date, cases );
+                stateData.set( d.state, x);        
+            } else {
+                x = new Map();
+                x.set( date, cases );
+                stateData.set( d.state, x );
+            }
+            if (!dates.includes(date)) {
+                dates.push(date);
+            }
+        } ).then( function( d) {
+                generateStateMaps(d);
+        } );
+    })
 
 }) 
 
